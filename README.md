@@ -372,6 +372,286 @@ Contributions are welcome!
 3. Commit your changes
 4. Open a Pull Request
 
+# 🚦 In-Memory Token Bucket Rate Limiter
+
+A Spring Boot implementation of the **Token Bucket Rate Limiting Algorithm** built with clean architecture principles.
+
+The goal of this project is to evolve from a simple in-memory rate limiter to a production-ready distributed rate limiter using Redis while maintaining clean, extensible, and testable code.
+
+---
+
+# Current Progress
+
+## ✅ Implemented
+
+- Spring Boot 3
+- Health Check API
+- Generic API Response
+- Logging using Lombok `@Slf4j`
+- GitHub Actions CI
+- Branching Strategy
+- Token Bucket Domain Model
+- Thread-safe Token Consumption
+- Token Refill Algorithm
+
+---
+
+# High Level Flow
+
+```text
+                Incoming Request
+                       │
+                       ▼
+             RateLimiterService
+                       │
+                       ▼
+ ConcurrentHashMap<String, TokenBucket>
+                       │
+         ┌─────────────┴─────────────┐
+         │                           │
+         ▼                           ▼
+     Existing Bucket            Bucket Not Found
+         │                           │
+         │                    Create TokenBucket
+         │                           │
+         └─────────────┬─────────────┘
+                       ▼
+                TokenBucket
+                       │
+                       ▼
+                tryConsume()
+                       │
+        ┌──────────────┴──────────────┐
+        │                             │
+        ▼                             ▼
+ Refill Bucket (if required)     No Refill Needed
+        │                             │
+        └──────────────┬──────────────┘
+                       ▼
+           Token Available?
+                │
+       ┌────────┴────────┐
+       ▼                 ▼
+     YES                 NO
+       │                 │
+Consume One Token    Reject Request
+       │                 │
+       ▼                 ▼
+ Return TRUE        Return FALSE
+```
+
+---
+
+# Internal Flow
+
+```text
+RateLimiterService
+        │
+        ▼
+ConcurrentHashMap<String, TokenBucket>
+        │
+        ▼
+Creates buckets automatically
+        │
+        ▼
+Calls tryConsume()
+        │
+        ▼
+Returns true / false
+```
+
+---
+
+# Token Bucket Design
+
+Each client is assigned an independent `TokenBucket`.
+
+```text
+Client A  ─────────► TokenBucket
+
+Client B  ─────────► TokenBucket
+
+Client C  ─────────► TokenBucket
+```
+
+Each bucket maintains its own state.
+
+```java
+capacity
+
+refillTokens
+
+refillDuration
+
+availableTokens
+
+lastRefillTime
+```
+
+The bucket is responsible for protecting and updating its own state.
+
+---
+
+# Token Consumption
+
+Every incoming request follows this sequence.
+
+```text
+Request
+
+↓
+
+tryConsume()
+
+↓
+
+refill()
+
+↓
+
+Tokens Available?
+
+↓
+
+YES → Consume Token → Allow Request
+
+↓
+
+NO → Reject Request
+```
+
+---
+
+# Thread Safety
+
+The `TokenBucket` is thread-safe.
+
+```java
+public synchronized boolean tryConsume()
+```
+
+This guarantees that:
+
+- only one thread can modify the bucket at a time
+- tokens never become negative
+- refills happen atomically
+- race conditions are avoided
+
+---
+
+# Design Principles
+
+This project follows a Rich Domain Model approach.
+
+## TokenBucket
+
+Responsible for:
+
+- Maintaining bucket state
+- Refilling tokens
+- Consuming tokens
+- Protecting its own invariants
+
+Not responsible for:
+
+- HTTP
+- Controllers
+- Services
+- Redis
+- Database
+- Client lookup
+
+---
+
+## RateLimiterService
+
+Responsible for:
+
+- Managing multiple buckets
+- Creating buckets on demand
+- Delegating token consumption
+
+Not responsible for:
+
+- Implementing the Token Bucket algorithm
+
+---
+
+## Controller
+
+Responsible for:
+
+- Receiving HTTP requests
+- Calling the service layer
+- Returning API responses
+
+---
+
+# Current Limitations
+
+This implementation is intentionally simple.
+
+Current limitations include:
+
+- In-memory storage
+- Buckets are lost after application restart
+- No distributed synchronization
+- No bucket eviction strategy
+- No configurable bucket policies
+- No Redis support
+
+These limitations will be addressed in future phases.
+
+---
+
+# Future Roadmap
+
+- In-Memory Rate Limiter ✅
+- REST API Integration
+- Unit Testing
+- Redis-backed Token Bucket
+- Configurable Policies
+- Rate Limiting Filter
+- Custom Annotations
+- Distributed Rate Limiting
+- Metrics & Monitoring
+- Docker Support
+- Kubernetes Deployment
+
+---
+
+# Contribution Guide
+
+Contributors are encouraged to review the current implementation and identify:
+
+- Thread-safety concerns
+- Performance bottlenecks
+- Memory leaks
+- Edge cases
+- Race conditions
+- Design improvements
+- Better refill strategies
+- Production readiness improvements
+
+Every suggestion should preserve the clean separation of responsibilities between:
+
+```text
+Controller
+
+↓
+
+Service
+
+↓
+
+Domain Model
+```
+
+---
+
+# License
+
+This project is intended for educational purposes and to demonstrate the design and implementation of a production-grade Token Bucket Rate Limiter.
 ---
 
 ## 📄 License
