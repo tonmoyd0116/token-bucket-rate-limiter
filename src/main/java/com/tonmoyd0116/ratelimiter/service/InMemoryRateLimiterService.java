@@ -13,8 +13,8 @@ public class InMemoryRateLimiterService implements RateLimiterService{
 
     private final ConcurrentHashMap<String, TokenBucket> tokenBuckets = new ConcurrentHashMap<>();
 
-    private static final long CAPACITY = 10;
-    private static final long REFILL_TOKENS = 2;
+    private static final long CAPACITY = 60;
+    private static final long REFILL_TOKENS = 1;
     private static final Duration REFILL_DURATION = Duration.ofSeconds(1);
 
     @Override
@@ -26,7 +26,7 @@ public class InMemoryRateLimiterService implements RateLimiterService{
         TokenBucket tokenBucket = tokenBuckets.computeIfAbsent(
                 clientId,
                 id->{
-                    log.info("Creating token but for ClientId:{}",clientId);
+                    log.info("Creating token but for ClientId:{}",id);
 
                     return new TokenBucket(
                             CAPACITY,
