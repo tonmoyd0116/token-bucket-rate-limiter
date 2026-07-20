@@ -46,14 +46,14 @@ public class TokenBucket {
      */
     public synchronized boolean tryConsume(){
         refill();
-        log.debug("Bucket Capacity bgefore consumption:{}",capacity);
+        log.info("Bucket Capacity before consumption:{}",availableTokens);
         if(availableTokens>0){
             availableTokens--;
             log.debug("Token consumed successfully. Remaining tokens:{}",availableTokens );
-            log.debug("Bucket Capacity after consumption:{}",capacity);
+            log.info("Bucket Capacity after consumption:{}",availableTokens);
             return true;
         }
-        log.debug("Bucket Capacity after failed consumption:{}",capacity);
+        log.info("Bucket Capacity after failed consumption:{}",availableTokens);
         log.debug("Token consumption failed. No tokens are available");
         return false;
     }
